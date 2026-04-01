@@ -40,3 +40,15 @@ Creamos un Dockerfile especial para el backend. ¿Por qué tiene varias etapas? 
   - `DB_PASSWORD` debe ser igual a `POSTGRES_PASSWORD`
   - `STAGE=dev` para desarrollo con recarga automática
 - `.env` no se sube a GitHub (está en `.gitignore`).
+
+## Paso 5: docker-compose.yml
+
+Este archivo estan los tres servicios que forman la aplicación:
+
+- **db**: PostgreSQL. Usa la imagen oficial de Docker Hub. Incluye un `healthcheck` para asegurar que la base de datos para saber si esta lista antes de que el backend intente conectarse.
+- **backend**: NestJS. Construye la imagen desde `teslo-shop/Dockerfile` usando la etapa definida en `STAGE` (desarrollo `dev`). Depende de `db` en estado saludable.
+- **frontend**: Angular + Nginx. Construye desde `angular-tesloshop/Dockerfile`. Depende del backend esta se inicia despues.
+
+**Red**: todos los servicios están conectados a la red interna `teslo-network`, lo que permite que se comuniquen usando el nombre del servicio como por ejemplo, `db`, `backend`.  
+**Volumen**: `postgres-data` guarda los datos de la base de datos fuera del contenedor, para que no se pierdan al reiniciar.  
+**Variables**: todos los valores sensibles como las contraseñas, puertos, etc. Se toman del archivo `.env`, que no se sube a GitHub.
