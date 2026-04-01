@@ -1,0 +1,95 @@
+services:
+
+  # ─────────────────────────────────────────────
+  # SERVICIO: db
+  # ─────────────────────────────────────────────
+	db:
+		image: postgres:14.3
+		container_name: ${POSTGRES_CONTAINER_NAME}     # nombre legible del contenedor
+		restart: always                                 # reinicia si el proceso falla
+		ports:
+			-"${POSTGRES_PUBLISH_PORT}:5432"             # host:contenedor
+		environment:
+			POSTGRES_USER: ${POSTGRES_USER}
+			POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+			POSTGRES_DB: ${POSTGRES_DB}
+		volumes:
+			- postgres-data:/var/lib/postgresql/data      # datos persistentes
+		networks:
+			- teslo-network
+		healthcheck:
+		      # Espera a que Postgres acepte conexiones antes
+		      # de marcar el servicio como "healthy".
+		      # El backend depende de este estado (ver más abajo).
+		test:["CMD-SHELL","pg_isready -U ${POSTGRES_USER}"]
+		interval: 10s    # comprueba cada 10 s
+		timeout: 5s      # falla si no responde en 5 s
+		retries:5       # tras 5 fallos consecutivos: unhealthy
+
+
+  # ─────────────────────────────────────────────
+  # SERVICIO: backend
+  # ─────────────────────────────────────────────
+	backend:
+		build:
+			context: ./teslo-shop          # carpeta con el código fuente
+			target: ${STAGE}               # etapa del Dockerfile (dev / prod)
+			dockerfile: Dockerfile
+		container_name: ${BACKEND_CONTAINER_NAME}
+		restart: always
+		ports:
+			-"${BACKEND_PUBLISH_PORT}:${PORT}"
+		environment:
+			APP_VERSION: ${APP_VERSION}
+			STAGE: ${STAGE}
+			DB_PASSWORD: ${DB_PASSWORD}
+			DB_NAME: ${DB_NAME}
+			DB_HOST: ${DB_HOST}            # "db" — nombre del servicio Postgres
+			DB_PORT: ${DB_PORT}
+			DB_USERNAME: ${DB_USERNAME}
+			PORT: ${PORT}
+			HOST_API: ${HOST_API}
+			JWT_SECRET: ${JWT_SECRET}
+		volumes:
+			- ./teslo-shop:/app            # monta el código para hot-reload en dev
+			- /app/node_modules            # volumen anónimo: protege node_modules
+		                                     # del contenedor frente a los del host
+		depends_on:
+			db:
+				condition: service_healthy   # espera a que db esté healthy
+		networks:
+			- teslo-network
+		command: yarn start:dev          # sobreescribe CMD del Dockerfile en dev
+	
+
+  # ─────────────────────────────────────────────
+  # SERVICIO: frontend
+  # ─────────────────────────────────────────────
+	frontend:
+		build:
+			context: ./angular-tesloshop
+			dockerfile: Dockerfile
+		container_name: ${FRONTEND_CONTAINER_NAME}
+		restart: always
+		ports:
+			-"${FRONTEND_PUBLISH_PORT}:80"
+		depends_on:
+			- backend                      # arranca después del backend
+		networks:
+			- teslo-network
+
+
+# ─────────────────────────────────────────────
+# VOLÚMENES
+# ─────────────────────────────────────────────
+volumes:
+	postgres-data:
+		driver: local
+
+
+# ─────────────────────────────────────────────
+# REDES
+# ─────────────────────────────────────────────
+networks:
+	teslo-network:
+		driver: bridge
