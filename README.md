@@ -31,3 +31,12 @@ Creamos un Dockerfile especial para el backend. ¿Por qué tiene varias etapas? 
 
 - **Proxy a la API**: Nginx redirige `/api` y `/socket.io` al backend (`http://backend:3000`).
 - **Sin CORS**: El navegador solo habla con Nginx (mismo origen). Nginx reenvía internamente al backend, así que no hay peticiones cross‑origin y no se necesita configurar CORS.
+
+## Paso 4: Variables de entorno
+
+- Copia `.env.example` a `.env` y edita los valores reales (contraseñas, JWT_SECRET).
+- Reglas importantes:
+  - `DB_HOST=db` (nombre del servicio en Compose)
+  - `DB_PASSWORD` debe ser igual a `POSTGRES_PASSWORD`
+  - `STAGE=dev` para desarrollo con recarga automática
+- `.env` no se sube a GitHub (está en `.gitignore`).
