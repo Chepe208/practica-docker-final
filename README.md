@@ -52,3 +52,15 @@ Este archivo estan los tres servicios que forman la aplicación:
 **Red**: todos los servicios están conectados a la red interna `teslo-network`, lo que permite que se comuniquen usando el nombre del servicio como por ejemplo, `db`, `backend`.  
 **Volumen**: `postgres-data` guarda los datos de la base de datos fuera del contenedor, para que no se pierdan al reiniciar.  
 **Variables**: todos los valores sensibles como las contraseñas, puertos, etc. Se toman del archivo `.env`, que no se sube a GitHub.
+
+## Paso 6: Scripts de arranque y parada
+
+Se crearon dos scripts para facilitar la gestión:
+
+- `start.sh`: verifica que Docker esté corriendo, construye las imágenes y levanta los contenedores en segundo plano.
+- `stop.sh`: detiene y elimina los contenedores y la red, pero **conserva los datos** de la base de datos en el volumen `postgres-data`.
+
+**Diferencias**:
+
+`docker compose down` hace que se detiene y elimina contenedores y red. Los datos de Postgres se conservan. 
+`docker compose down -v` Lo que hace es que elimina los volúmenes (los datos de la BD se pierden). Útil para cuando se hace un reset total.
