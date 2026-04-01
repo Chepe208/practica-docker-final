@@ -2,18 +2,36 @@
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
 </p>
 
-## Paso 1: Dockerfile del backend (NestJS)
 
-Creamos un Dockerfile especial para el backend. ¿Por qué tiene varias etapas? Porque así podemos tener:
+# Teslo API
 
-- **Una imagen ligera para producción**: solo lo necesario para que la app funcione.
-- **Un entorno de desarrollo con recarga automática**: cuando se cambia el código, el servidor se reinicia solo.
+1. Clonar proyecto
+2. ```yarn install```
+3. Clonar el archivo ```.env.template``` y renombrarlo a ```.env```
+4. Cambiar las variables de entorno
+5. Levantar la base de datos
+```
+docker compose up -d
+```
 
-### Etapas:
+6. Levantar: ```yarn start:dev```
+
+7. Ejecutar SEED 
+```
+http://localhost:3000/api/seed
+```
 
 
-1. **dev** – aquí se monta el código en vivo y se ejecuta con `yarn start:dev` para que puedas programar viendo los cambios al instante.
-2. **dev-deps** – instala todas las dependencias (las que se usan en desarrollo y en producción).
-3. **builder** – compila el código TypeScript a JavaScript (el resultado queda en la carpeta `dist`).
-4. **prod-deps** – instala **solo** las dependencias necesarias para producción sin herramientas de desarrollo.
-5. **prod** – toma el código compilado (`dist`) y las dependencias de producción y genera una imagen final pequeña y segura, lista para desplegar.
+
+# Production notes:
+
+Ejecutar este comando
+```
+docker compose -f docker-compose.prod.yml build
+```
+
+```
+docker buildx build \
+--platform linux/amd64,linux/arm64 \
+-t registry.digitalocean.com/devtalles-registry-dev/teslo-shop:1.2.0 --push .
+```
