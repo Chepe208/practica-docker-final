@@ -64,3 +64,67 @@ Se crearon dos scripts para facilitar la gestión:
 
 `docker compose down` hace que se detiene y elimina contenedores y red. Los datos de Postgres se conservan. 
 `docker compose down -v` Lo que hace es que elimina los volúmenes (los datos de la BD se pierden). Útil para cuando se hace un reset total.
+
+## Paso 7 — Ejecutar todo por primera vez
+
+En este paso se pone en marcha la aplicación completa. Se verifica que Docker esté listo, se configuran las variables de entorno y se levantan los contenedores con Docker Compose.
+
+### 10.1 Verificar que Docker está instalado y activo
+
+Ejecutamos los siguientes comandos para asegurarnos de que Docker y Docker Compose están disponibles:
+
+jose_ruiz@DESKTOP-21FUFD0:~/tesloshop$ docker --version
+Docker version 28.2.2, build 28.2.2-0ubuntu1~24.04.1
+jose_ruiz@DESKTOP-21FUFD0:~/tesloshop$ docker compose version
+Docker Compose version v5.1.0
+
+### 10.4 Lanzar la aplicación (opción B)
+
+Se utilizó el comando directo de Docker Compose:
+docker compose up --build -d
+Dando como resultado:
+[+] up 14/14
+ ✔ Image postgres:14.3 Pulled                                                                   44.7s
+[+] Building 392.8s (29/29) FINISHED
+
+[+] up 21/21king to docker.io/library/tesloshop-backend:latest                                101.0s 
+ ✔ Image postgres:14.3             Pulled                                                      44.7s 
+                                       377.8s
+ ✔ Network tesloshop_teslo-network Created                                                     0.2s  
+ ✔ Volume tesloshop_postgres-data  Created                                                     0.0s  
+ ✔ Container teslo-db              Healthy                                                     44.0s 
+ ✔ Container teslo-backend         Started                                                     42.4s 
+ ✔ Container teslo-frontend        Started   
+
+ ## Sección 10.5 Verificar que los servicios están corriendo
+ Con el comando:
+
+docker compose ps
+
+Esto fue lo que se mostro:
+jose_ruiz@DESKTOP-21FUFD0:~/tesloshop$ docker compose ps
+NAME             IMAGE                COMMAND                  SERVICE    CREATED          STATUS                    PORTS
+teslo-backend    tesloshop-backend    "docker-entrypoint.s…"   backend    21 minutes ago   Up 21 minutes             0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp
+teslo-db         postgres:14.3        "docker-entrypoint.s…"   db         21 minutes ago   Up 21 minutes (healthy)   0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp
+teslo-frontend   tesloshop-frontend   "/docker-entrypoint.…"   frontend   21 minutes ago   Up 20 minutes             0.0.0.0:80->80/tcp, [::]:80->80/tcp
+
+Como se ve, los tres contenedores están en estado Up y la base de datos aparece como healthy, lo que indica que el healthcheck configurado en docker-compose.yml funciona correctamente.
+
+### 10.6 Revisar logs
+
+Para confirmar que no hubo errores, se pueden inspeccionar los logs de cada servicio:
+
+docker compose logs -f backend   # ver logs del backend
+docker compose logs -f db        # ver logs de la base de datos
+
+**Ejecución real desde la terminal:**
+
+Se usa el comando:
+jose_ruiz@DESKTOP-21FUFD0:~/tesloshop$ curl http://localhost:3000/api/seed
+Aparecio seed executed
+
+Imagenes de que funciono:
+
+```markdown
+![Frontend con productos](docs/Frontend.png)
+![Respuesta del seed](docs/Seed-executed.png)
