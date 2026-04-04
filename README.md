@@ -125,6 +125,22 @@ Aparecio seed executed
 
 Imagenes de que funciono:
 
-```markdown
-![Frontend con productos](docs/Frontend.png)
-![Respuesta del seed](docs/Seed-executed.png)
+
+(docs/Frontend.png)
+(docs/Seed-executed.png)
+
+## Arquitectura de la solución
+
+La aplicación está compuesta por tres servicios contenerizados que se comunican a través de una red interna de Docker (`teslo-network`):
+
+- **Frontend** (Angular + Nginx): Sirve la aplicación web en el puerto 80. Actúa como **proxy inverso**: redirige las peticiones a `/api` y `/socket.io` hacia el backend usando el nombre del servicio `backend:3000`. Esto evita problemas de CORS.
+- **Backend** (NestJS): API REST que corre en el puerto 3000. Se conecta a la base de datos usando el nombre del servicio `db` y las credenciales definidas en `.env`.
+- **Base de datos** (PostgreSQL 14.3): Almacena los datos de productos y usuarios. Los datos persisten gracias a un volumen Docker (`postgres-data`).
+
+**Flujo de comunicación:**
+1. El navegador accede a `http://localhost` (frontend).
+2. El frontend envía las peticiones a `/api` al backend interno (`http://backend:3000`).
+3. El backend consulta o modifica datos en la base de datos (`db:5432`).
+4. Todo ocurre dentro de la misma red Docker, sin necesidad de exponer puertos adicionales.
+
+El orden de arranque está controlado por `depends_on` y un `healthcheck` que asegura que PostgreSQL esté listo antes de iniciar el backend.
