@@ -1,5 +1,21 @@
 # tesloshop-app
 
+## Arquitectura de la solución
+
+La aplicación está compuesta por tres servicios contenerizados que se comunican a través de una red interna de Docker (`teslo-network`):
+
+- **Frontend** (Angular + Nginx): Sirve la aplicación web en el puerto 80. Actúa como **proxy inverso**: redirige las peticiones a `/api` y `/socket.io` hacia el backend usando el nombre del servicio `backend:3000`. Esto evita problemas de CORS.
+- **Backend** (NestJS): API REST que corre en el puerto 3000. Se conecta a la base de datos usando el nombre del servicio `db` y las credenciales definidas en `.env`.
+- **Base de datos** (PostgreSQL 14.3): Almacena los datos de productos y usuarios. Los datos persisten gracias a un volumen Docker (`postgres-data`).
+
+**Flujo de comunicación:**
+1. El navegador accede a `http://localhost` (frontend).
+2. El frontend envía las peticiones a `/api` al backend interno (`http://backend:3000`).
+3. El backend consulta o modifica datos en la base de datos (`db:5432`).
+4. Todo ocurre dentro de la misma red Docker, sin necesidad de exponer puertos adicionales.
+
+El orden de arranque está controlado por `depends_on` y un `healthcheck` que asegura que PostgreSQL esté listo antes de iniciar el backend.
+
 ## Paso 1: Dockerfile del backend (NestJS)
 
 Creamos un Dockerfile especial para el backend. ¿Por qué tiene varias etapas? Porque así podemos tener:
@@ -123,24 +139,42 @@ Se usa el comando:
 jose_ruiz@DESKTOP-21FUFD0:~/tesloshop$ curl http://localhost:3000/api/seed
 Aparecio seed executed
 
-Imagenes de que funciono:
+Capturas de evidencias:
 
+**Estructura del proyecto**: Se muestran los archivos clave: `Dockerfile` en backend y frontend, `docker-compose.yml`, `.env.example`, scripts `start.sh` y `stop.sh`
+![alt text](image-5.png)
+![alt text](image-6.png)
+![alt text](image-7.png)
 
-(docs/Frontend.png)
-(docs/Seed-executed.png)
+**Dockerfile del backend (NestJS)**: Se ven las etapas multi‑stage `dev`, `dev-deps`, `builder`, `prod-deps`, `prod`
+![alt text](image-8.png)
+![alt text](image-9.png)
 
-## Arquitectura de la solución
+**Dockerfile del frontend (Angular + Nginx)**: Las dos etapas: `build` (compila Angular con Node) y `runtime` (sirve los estáticos con Nginx). Se optimiza copiando primero `package.json`.
+![alt text](image-10.png)
 
-La aplicación está compuesta por tres servicios contenerizados que se comunican a través de una red interna de Docker (`teslo-network`):
+**nginx.conf**: El bloque `location ^~ /api` que es el que redirige las peticiones al backend interno (`http://backend:3000`), haciendo que se elimine problemas de CORS. 
+![alt text](image-11.png)
+![alt text](image-12.png)
 
-- **Frontend** (Angular + Nginx): Sirve la aplicación web en el puerto 80. Actúa como **proxy inverso**: redirige las peticiones a `/api` y `/socket.io` hacia el backend usando el nombre del servicio `backend:3000`. Esto evita problemas de CORS.
-- **Backend** (NestJS): API REST que corre en el puerto 3000. Se conecta a la base de datos usando el nombre del servicio `db` y las credenciales definidas en `.env`.
-- **Base de datos** (PostgreSQL 14.3): Almacena los datos de productos y usuarios. Los datos persisten gracias a un volumen Docker (`postgres-data`).
+**.env.example**: Archivo de plantilla que documenta todas las variables necesarias (contraseñas, puertos, `JWT_SECRET`). El archivo `.env` real no se pone en el repositorio.
+![alt text](image-13.png)
 
-**Flujo de comunicación:**
-1. El navegador accede a `http://localhost` (frontend).
-2. El frontend envía las peticiones a `/api` al backend interno (`http://backend:3000`).
-3. El backend consulta o modifica datos en la base de datos (`db:5432`).
-4. Todo ocurre dentro de la misma red Docker, sin necesidad de exponer puertos adicionales.
+**Verificación de Docker y Compose**: Se confirma que Docker (`28.2.2`) y Docker Compose (`v5.1.0`) están instalados y activos.
+![alt text](image-2.png)
 
-El orden de arranque está controlado por `depends_on` y un `healthcheck` que asegura que PostgreSQL esté listo antes de iniciar el backend.
+**Uso de `docker compose up --build -d`**: Los contenedores `teslo-db`, `teslo-backend` y `teslo-frontend` se crean correctamente; la base de datos queda `healthy`.
+![alt text](image-3.png)
+![alt text](image-4.png)
+
+**Estado de los contenedores**: `docker compose ps` muestra los tres servicios en estado `Up` y la base de datos `healthy`, diciendo que el `healthcheck` sirve bien. 
+![alt text](image-14.png)
+
+ **Logs del backend**: Se observa que NestJS inicia sin errores, se conecta a la base de datos (`DB_HOST=db`) y queda en el puerto 3000.
+![alt text](image-15.png)
+
+**Ejecución del seed**: `http://localhost:3000/api/seed` devuelve `"SEED EXECUTED"`. El seed carga los datos de prueba.
+![alt text](image-1.png)
+
+**Aplicación web funcionando**: Después del seed, el frontend en `http://localhost` muestra el catálogo de productos, confirmando la integración end‑to‑end.
+![alt text](image.png)
